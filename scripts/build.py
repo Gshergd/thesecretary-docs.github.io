@@ -5,9 +5,11 @@ import rendering as r
 ROOT=Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser()
 p.add_argument("--source-root", required=True, help="Path to The Secretary checkout (read-only content source)")
-p.add_argument('--base-path',default='/thesecretary-docs.github.io')
+p.add_argument('--base-path', default='', help='URL prefix; empty for custom domain hosting')
+p.add_argument('--site-url', default='https://docs.thesecretary.xyz', help='Public site origin for canonical URLs and sitemap')
 a=p.parse_args()
 base='/' + a.base_path.strip('/') if a.base_path.strip('/') else ''
+site_url=a.site_url.rstrip('/')
 SOURCE=Path(a.source_root).resolve()
 if not (SOURCE/"Documentation").is_dir() or not (SOURCE/"secretary-commands.js").is_file():
     p.error("--source-root must contain Documentation/ and secretary-commands.js")
@@ -32,7 +34,7 @@ def page(route,title,body,active='welcome',intro=''):
     if style:
         (out/'styles.css').write_text(style.group(1),encoding='utf-8')
         content=content[:style.start()]+f'<link rel="stylesheet" href="{base}/styles.css">'+content[style.end():]
-    canonical='https://gshergd.github.io'+base+'/'+route
+    canonical=site_url+base+'/'+route
     content=content.replace('</head>',f'<link rel="canonical" href="{canonical}"></head>')
     target=out/route
     target.parent.mkdir(parents=True,exist_ok=True)
@@ -86,7 +88,8 @@ for route in pages:
     f.write_text(s,encoding='utf-8')
 shutil.copy2(out/'documentation/welcome/index.html',out/'index.html')
 (out/'.nojekyll').touch()
-(out/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>https://gshergd.github.io'+base+'/'+route+'</loc></url>' for route in pages)+'</urlset>',encoding='utf-8')
+(out/'CNAME').write_text('docs.thesecretary.xyz\n', encoding='utf-8')
+(out/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>'+site_url+base+'/'+route+'</loc></url>' for route in pages)+'</urlset>',encoding='utf-8')
 # Check all generated local links and fragment targets before deployment.
 from html.parser import HTMLParser
 from urllib.parse import urlsplit, unquote
@@ -101,7 +104,13 @@ for f in out.rglob('*.html'):
         u=urlsplit(v)
         if u.scheme or u.netloc or not u.path: continue
         path=unquote(u.path)
-        target=out/path[len(base):].lstrip('/') if base and path.startswith(base+'/') else f.parent/path
+        if path.startswith('/'):
+            if base and not path.startswith(base+'/'):
+                errors.append(f'{f.relative_to(out)} -> URL outside configured base: {v}')
+                continue
+            target=out/path[len(base):].lstrip('/')
+        else:
+            target=f.parent/path
         if not target.exists(): errors.append(f'{f.relative_to(out)} -> {v}')
 if errors: raise SystemExit('\n'.join(errors))
 print(f'Built and checked {len(pages)+1} HTML pages, {len(commands)} commands, {len(entries)} changelogs.')

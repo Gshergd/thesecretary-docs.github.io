@@ -19,9 +19,22 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - name: Verify private source access
+        env:
+          GH_TOKEN: ${{ secrets.SECRETARY_SOURCE_TOKEN }}
+        shell: bash
+        run: |
+          if [[ ! "$GH_TOKEN" =~ ^(github_pat_|ghp_)[A-Za-z0-9_]+$ ]]; then
+            echo "::error::Set SECRETARY_SOURCE_TOKEN in this repository to the raw GitHub token value, with no quotes, spaces, line breaks, or prefixes."
+            exit 1
+          fi
+          if ! gh api 'repos/Gshergd/The-Secretary/contents/Documentation?ref=main' --silent; then
+            echo "::error::SECRETARY_SOURCE_TOKEN cannot read Gshergd/The-Secretary on main. Check the repository name, token expiry, resource owner Gshergd, selected repository The-Secretary, and Contents: read permission."
+            exit 1
+          fi
       - name: Check out canonical documentation (never committed here)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: Gshergd/The-Secretary
           ref: main
@@ -35,7 +48,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python scripts/build.py --source-root .source/secretary
+      - run: python scripts/build.py --source-root .source/secretary --base-path "" --site-url https://docs.thesecretary.xyz
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

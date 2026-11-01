@@ -44,6 +44,8 @@ python -m http.server 8080 --directory dist
 
 Website template and embedded CSS are maintained in scripts/rendering.py; the builder exports the CSS to dist/styles.css. Source content is never read from a local Documentation folder in this website repo.
 
-Expected published URL: https://gshergd.github.io/thesecretary-docs.github.io/
+Expected published URL: https://docs.thesecretary.xyz/
 
 Changelogs retain all source files, ten per page. Named versions sort by version; unversioned notes sort by filename. Commit dates are not invented.
+
+Custom-domain publishing uses an empty URL base path. The workflow explicitly supplies --base-path "" and --site-url https://docs.thesecretary.xyz so CSS and navigation are served from the domain root.
