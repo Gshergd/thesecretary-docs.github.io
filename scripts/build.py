@@ -5,7 +5,7 @@ import rendering as r
 ROOT=Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser()
 p.add_argument("--source-root", required=True, help="Path to The Secretary checkout (read-only content source)")
-p.add_argument('--base-path',default='/The-Secretary-Documentation')
+p.add_argument('--base-path',default='/thesecretary-docs.github.io')
 a=p.parse_args()
 base='/' + a.base_path.strip('/') if a.base_path.strip('/') else ''
 SOURCE=Path(a.source_root).resolve()

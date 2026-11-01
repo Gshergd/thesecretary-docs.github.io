@@ -26,7 +26,7 @@ jobs:
           repository: Gshergd/The-Secretary
           ref: main
           path: .source/secretary
-          token: ${{ secrets.SECRETARY_SOURCE_TOKEN || github.token }}
+          token: ${{ secrets.SECRETARY_SOURCE_TOKEN }}
           persist-credentials: false
           sparse-checkout: |
             Documentation

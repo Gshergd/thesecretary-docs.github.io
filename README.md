@@ -19,7 +19,7 @@ No Markdown is copied into this repository's Git history. There is no manual syn
 
 The normal GITHUB_TOKEN is scoped to its own repository, so a dispatch to another repository requires a credential:
 
-- In **The Secretary** repository, add Actions secret **DOCS_REPO_TOKEN**: a fine-grained personal access token scoped only to The-Secretary-Documentation, with **Contents: read and write** (required by GitHub's repository-dispatch API).
+- In **The Secretary** repository, add Actions secret **DOCS_REPO_TOKEN**: a fine-grained personal access token scoped only to thesecretary-docs.github.io, with **Contents: read and write** (required by GitHub's repository-dispatch API).
 - If **The Secretary is private**, add Actions secret **SECRETARY_SOURCE_TOKEN** in this website repo: a fine-grained token scoped only to The Secretary, with **Contents: read**. Public source repositories need no source token.
 - Enable GitHub Pages using GitHub Actions in this repo. The pages workflow must exist on its default main branch to receive repository_dispatch events.
 
@@ -44,6 +44,6 @@ python -m http.server 8080 --directory dist
 
 Website template and embedded CSS are maintained in scripts/rendering.py; the builder exports the CSS to dist/styles.css. Source content is never read from a local Documentation folder in this website repo.
 
-Expected published URL: https://gshergd.github.io/The-Secretary-Documentation/
+Expected published URL: https://gshergd.github.io/thesecretary-docs.github.io/
 
 Changelogs retain all source files, ten per page. Named versions sort by version; unversioned notes sort by filename. Commit dates are not invented.
