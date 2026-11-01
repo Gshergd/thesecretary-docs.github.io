@@ -1,6 +1,6 @@
 """Build standalone docs. Run from any directory; no bot, database, or packages required."""
 from pathlib import Path
-import argparse, html, json, os, re, shutil
+import argparse, hashlib, html, json, os, re, shutil
 import rendering as r
 ROOT=Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser()
@@ -18,13 +18,17 @@ os.chdir(ROOT)
 out=ROOT/'dist'
 out.mkdir(exist_ok=True)
 pages={}
+extra_css=(ROOT/'assets/docs.css').read_text(encoding='utf-8')
+extra_js=(ROOT/'assets/docs.js').read_text(encoding='utf-8')
+js_version=hashlib.sha256(extra_js.encode()).hexdigest()[:10]
+(out/'docs.js').write_text(extra_js, encoding='utf-8')
 
 def page(route,title,body,active='welcome',intro=''):
     content=r._documentation_layout(active=active,eyebrow='Documentation',title=title,intro=intro,body=body,right_links=[])
     def link(m):
         target=m.group(2)
         if target.startswith('/documentation'):
-            target=base+target.split('?',1)[0].rstrip('/')+'/index.html'+(('?'+target.split('?',1)[1]) if '?' in target else '')
+            target=base+target.split('?',1)[0].rstrip('/')+'/'+(('?'+target.split('?',1)[1]) if '?' in target else '')
         elif target.startswith('/') and not target.startswith('//'):
             target='https://thesecretary.xyz'+target
         return m.group(1)+target+m.group(3)
@@ -32,10 +36,13 @@ def page(route,title,body,active='welcome',intro=''):
     # The runtime layout embeds CSS; keep website styling in a dedicated file.
     style=re.search(r'<style>([\s\S]*?)</style>',content)
     if style:
-        (out/'styles.css').write_text(style.group(1),encoding='utf-8')
-        content=content[:style.start()]+f'<link rel="stylesheet" href="{base}/styles.css">'+content[style.end():]
-    canonical=site_url+base+'/'+route
-    content=content.replace('</head>',f'<link rel="canonical" href="{canonical}"></head>')
+        css=style.group(1)+'\n'+extra_css
+        css_version=hashlib.sha256(css.encode()).hexdigest()[:10]
+        (out/'styles.css').write_text(css,encoding='utf-8')
+        content=content[:style.start()]+f'<link rel="stylesheet" href="{base}/styles.css?v={css_version}">'+content[style.end():]
+    content=content.replace('</body>', f'<script defer src="{base}/docs.js?v={js_version}"></script></body>')
+    canonical=site_url+base+'/'+route.removesuffix('index.html')
+    content=content.replace('</head>',f'<link rel="canonical" href="{canonical}"><script>if(location.pathname.endsWith("/index.html"))history.replaceState(null,"",location.pathname.slice(0,-10)+location.search+location.hash);</script></head>')
     target=out/route
     target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(content,encoding='utf-8')
@@ -69,8 +76,24 @@ entries.sort(key=lambda x:(x[0]=='new',r._docs_changelog_version_key(x[1])),reve
 for i in range(0,len(entries),10):
     n=i//10+1
     route='documentation/changelog/index.html' if n==1 else f'documentation/changelog/page-{n}/index.html'
-    cards=''.join(f'<article class="changelog-card"><h2>{html.escape(title)}</h2><p class="badge">{html.escape(stem)}</p>{body}</article>' for stem,title,body in entries[i:i+10])
-    nav=' '.join(f'<a href="/documentation/changelog'+('' if j==1 else f'/page-{j}')+f'">{j}</a>' for j in range(1,(len(entries)+9)//10+1))
+    cards=''.join(f'<article class="changelog-card"><header class="release-header"><h2>{html.escape(title)}</h2><span class="badge">{html.escape(stem)}</span></header>{body}</article>' for stem,title,body in entries[i:i+10])
+    total_pages=(len(entries)+9)//10
+    def page_url(number):
+        return '/documentation/changelog'+('' if number==1 else f'/page-{number}')
+    def page_link(number, label):
+        return f'<a href="{page_url(number)}" aria-label="{label}">{label if label in ("Previous", "Next") else number}</a>'
+    parts=[page_link(n-1, 'Previous') if n>1 else '<span aria-disabled="true">Previous</span>']
+    numbers=sorted({1,total_pages,*range(max(1,n-1),min(total_pages,n+1)+1)})
+    previous=0
+    for number in numbers:
+        if number-previous==2:
+            parts.append(page_link(number-1, f'Page {number-1}'))
+        elif number-previous>2:
+            parts.append('<span class="pager-gap" aria-hidden="true">…</span>')
+        parts.append(f'<span aria-current="page" aria-label="Page {number}, current page">{number}</span>' if number==n else page_link(number,f'Page {number}'))
+        previous=number
+    parts.append(page_link(n+1, 'Next') if n<total_pages else '<span aria-disabled="true">Next</span>')
+    nav=''.join(parts)
     page(route,'Changelogs',cards+f'<nav class="pager" aria-label="Changelog pages">{nav}</nav>','changelog')
 # Additional documentation remains accessible through a public guide index.
 guides=[]
@@ -84,12 +107,12 @@ page('documentation/guides/index.html','More Guides','<ul>'+''.join(guides)+'</u
 # Make additional guides discoverable in every sidebar.
 for route in pages:
     f=out/route
-    s=f.read_text(encoding='utf-8').replace('</aside>',f'<a class="nav-item" href="{base}/documentation/guides/index.html">More Guides</a></aside>',1)
+    s=f.read_text(encoding='utf-8').replace('</aside>',f'<a class="nav-item" href="{base}/documentation/guides/">More Guides</a></aside>',1)
     f.write_text(s,encoding='utf-8')
 shutil.copy2(out/'documentation/welcome/index.html',out/'index.html')
 (out/'.nojekyll').touch()
 (out/'CNAME').write_text('docs.thesecretary.xyz\n', encoding='utf-8')
-(out/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>'+site_url+base+'/'+route+'</loc></url>' for route in pages)+'</urlset>',encoding='utf-8')
+(out/'sitemap.xml').write_text('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>'+site_url+base+'/'+route.removesuffix('index.html')+'</loc></url>' for route in pages)+'</urlset>',encoding='utf-8')
 # Check all generated local links and fragment targets before deployment.
 from html.parser import HTMLParser
 from urllib.parse import urlsplit, unquote
@@ -111,6 +134,7 @@ for f in out.rglob('*.html'):
             target=out/path[len(base):].lstrip('/')
         else:
             target=f.parent/path
-        if not target.exists(): errors.append(f'{f.relative_to(out)} -> {v}')
+        if target.is_dir(): target=target/'index.html'
+        if not target.is_file(): errors.append(f'{f.relative_to(out)} -> {v}')
 if errors: raise SystemExit('\n'.join(errors))
 print(f'Built and checked {len(pages)+1} HTML pages, {len(commands)} commands, {len(entries)} changelogs.')

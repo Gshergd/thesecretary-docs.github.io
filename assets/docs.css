@@ -1,0 +1,30 @@
+/* Documentation presentation overrides. Source Markdown stays in The Secretary. */
+.doc-main { min-width: 0; }
+.doc-main p, .doc-main li, .doc-main a, .doc-main .usage { overflow-wrap: anywhere; }
+.doc-main pre { max-width: 100%; overflow-x: auto; }
+.doc-main img { max-width: 100%; }
+.right-nav { overflow-y: auto; overscroll-behavior: contain; padding: 3rem .9rem; }
+.right-nav a { line-height: 1.4; padding: .35rem .65rem; border-left-width: 1px; }
+.right-nav a:hover { color: var(--text); border-left-color: transparent; }
+.right-nav a.active, .right-nav a[aria-current="location"] { color: var(--yellow); border-left-color: var(--yellow); font-weight: 700; }
+.doc-main :is(h1,h2,h3)[id] { scroll-margin-top: 2rem; }
+.changelog-card { padding: .85rem 1rem; margin-top: .75rem; }
+.release-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .35rem .75rem; margin-bottom: .5rem; }
+.changelog-card .release-header h2 { margin: 0; font-size: 1.25rem; line-height: 1.35; }
+.release-header .badge { margin: 0; padding: .12rem .4rem; font-size: .7rem; line-height: 1.5; }
+.changelog-card > :is(p,ul,ol) { margin-block: .45rem; }
+.changelog-card > :last-child { margin-bottom: 0; }
+.changelog-card ul, .changelog-card ol { padding-left: 1.05rem; line-height: 1.55; }
+.changelog-card li + li { margin-top: .2rem; }
+.pager { display: flex; justify-content: flex-start; align-items: center; flex-wrap: wrap; gap: .35rem; margin-top: 1.15rem; }
+.pager a, .pager span { display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; min-height: 2rem; padding: .3rem .55rem; border-radius: .35rem; font-size: .85rem; line-height: 1.25; }
+.pager a:hover { border-color: var(--yellow); color: var(--yellow); }
+.pager [aria-current="page"] { background: var(--yellow); color: var(--bg); border-color: var(--yellow); font-weight: 800; }
+.pager .pager-gap { min-width: 1rem; padding-inline: .1rem; border: 0; background: transparent; color: var(--muted); }
+.pager [aria-disabled="true"] { opacity: .4; }
+a:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+@media (max-width: 760px) {
+  .doc-main :is(h1,h2,h3)[id] { scroll-margin-top: 6rem; }
+  .changelog-card { padding: .75rem; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
